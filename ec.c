@@ -221,6 +221,35 @@ t_mat *mat_vandermonde(u_int n_rows, u_int n_cols)
   return mat;
 }
 
+t_mat *mat_cauchy(u_int n_rows, u_int n_cols)
+{
+  t_mat *mat;
+  int i, j;
+
+  mat = mat_xcalloc(n_rows, n_cols);
+  for (i = 0;i < n_rows;i++) {
+    for (j = 0;j < n_cols;j++) {
+      MAT_ITEM(mat, i, j) = gdiv(1, (i ^ (j + n_rows)));
+    }
+  }
+
+  /* do optimise */
+  // convert 1st row to all 1s
+  for (j = 0;j < n_cols;j++) {
+    for (i = 0;i < n_rows;i++) {
+      MAT_ITEM(mat, i, j) = gdiv(MAT_ITEM(mat, i, j), MAT_ITEM(mat, 0, j));
+    }
+  }
+  // convert 1st element of each row to 1
+  for (i = 1;i < n_rows;i++) {
+    for (j = 0;j < n_cols;j++) {
+      MAT_ITEM(mat, i, j) = gdiv(MAT_ITEM(mat, i, j), MAT_ITEM(mat, i, 0));
+    }
+  }
+
+  return mat;
+}
+
 int mat_check_row_is_identity(t_mat *mat, int row)
 {
   int j;
@@ -517,6 +546,8 @@ void utest()
   mat_free(mat);
   mat = mat_vandermonde_correct(3, 3);
   mat_free(mat);
+  mat = mat_cauchy(3, 3);
+  mat_free(mat);
 #elif W == 8
   assert(gmul(3, 7) == 9);
   assert(gmul(13, 10) == 114);
@@ -545,10 +576,10 @@ void create_coding_files(char *prefix, t_mat *mat)
   t_vec *output = NULL;
 
   if (vflag) {
-    fprintf(stderr, "vandermonde matrix:\n");
+    fprintf(stderr, "encoding matrix:\n");
     mat_dump(mat);
   }
-  
+
   for (i = 0;i < mat->n_cols;i++) {
     snprintf(filename, sizeof (filename), "%s.d%d", prefix, i);
     if (NULL == (d_files[i] = fopen(filename, "r")))
@@ -767,23 +798,24 @@ int repair_data_files(char *prefix, t_mat *mat)
 
 void xusage()
 {
-  fprintf(stderr, 
-          "Usage: erasure [-n n_data][-m n_coding][-p prefix][-v (verbose)] -c (encode) | -r (repair) | -u (utest)\n");
+  fprintf(stderr,
+          "Usage: erasure [-n n_data][-m n_coding][-s (use cauchy instead of vandermonde)][-p prefix][-v (verbose)] -c (encode) | -r (repair) | -u (utest)\n");
   exit(1);
-}  
+}
 
 int main(int argc, char **argv)
 {
   int n_data, n_coding, opt;
-  t_mat *vander_mat;
+  t_mat *mat;
   char *prefix = NULL;
   int cflag = 0;
   int rflag = 0;
   int uflag = 0;
-  
+  int sflag = 0;
+
   n_data = n_coding = -1;
   prefix = NULL;
-  while ((opt = getopt(argc, argv, "n:m:p:cruv")) != -1) {
+  while ((opt = getopt(argc, argv, "n:m:p:scruv")) != -1) {
     switch (opt) {
     case 'v':
       vflag = 1;
@@ -796,6 +828,9 @@ int main(int argc, char **argv)
       break ;
     case 'r':
       rflag = 1;
+      break ;
+    case 's':
+      sflag = 1;
       break ;
     case 'n':
       n_data = atoi(optarg);
@@ -810,9 +845,14 @@ int main(int argc, char **argv)
       xusage();
     }
   }
-  
+
   if (!(uflag || cflag || rflag))
     xusage();
+
+  if (n_data + n_coding > NW) {
+    fprintf(stderr, "Number of fragments is too big compared to Galois field size\n");
+    exit(1);
+  }
 
   setup_tables(W);
   //dump_tables(W);
@@ -825,18 +865,22 @@ int main(int argc, char **argv)
   if (-1 == n_data || -1 == n_coding || NULL == prefix)
     xusage();
 
-  vander_mat = mat_vandermonde_correct(n_coding, n_data);
+  if (sflag) {
+    mat = mat_cauchy(n_coding, n_data);
+  } else {
+    mat = mat_vandermonde_correct(n_coding, n_data);
+  }
   if (vflag)
-    mat_dump(vander_mat);
+    mat_dump(mat);
 
   if (rflag) {
-    if (0 != repair_data_files(prefix, vander_mat)) {
+    if (0 != repair_data_files(prefix, mat)) {
       exit(1);
     }
   }
-  create_coding_files(prefix, vander_mat);
+  create_coding_files(prefix, mat);
 
-  mat_free(vander_mat);
+  mat_free(mat);
 
  end:
   free(prefix);
