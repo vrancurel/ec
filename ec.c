@@ -221,6 +221,117 @@ t_mat *mat_vandermonde(u_int n_rows, u_int n_cols)
   return mat;
 }
 
+int mat_check_row_is_identity(t_mat *mat, int row)
+{
+  int j;
+
+  for (j = 0;j < mat->n_cols;j++) {
+    if (MAT_ITEM(mat, row, j) != ((j == row) ? 1 : 0))
+      return 0;
+  }
+  return 1;
+}
+
+void mat_swap_cols(t_mat *mat, int c1, int c2)
+{
+  int i;
+
+  assert(c1 < mat->n_cols && c2 < mat->n_cols);
+  for (i = 0;i < mat->n_rows;i++) {
+    int val = MAT_ITEM(mat, i, c1);
+    MAT_ITEM(mat, i, c1) = MAT_ITEM(mat, i, c2);
+    MAT_ITEM(mat, i, c2) = val;
+  }
+}
+
+/*
+ * transform c_i into f_i_i_minus_1 * c_i 
+ */
+void mat_transform1(t_mat *tmp, int i)
+{
+  int k;
+  int f_minus_1 = gdiv(1, MAT_ITEM(tmp, i, i));
+
+  for (k = 0;k < tmp->n_rows;k++) {
+    MAT_ITEM(tmp, k, i) = gmul(f_minus_1, MAT_ITEM(tmp, k, i));
+  }
+}
+
+/*
+ * transform c_j into c_j - f_i_j * c_i 
+ */
+void mat_transform2(t_mat *tmp, int i, int j)
+{
+  int k;
+  int f_i_j = MAT_ITEM(tmp, i, j);
+
+  for (k = 0;k < tmp->n_rows;k++) {
+    MAT_ITEM(tmp, k, j) = MAT_ITEM(tmp, k, j) ^ gmul(f_i_j, MAT_ITEM(tmp, k, i));
+  }
+}
+
+t_mat *mat_vandermonde_correct(u_int n_rows, u_int n_cols)
+{
+  t_mat *mat, *tmp;
+  int i, j, dim;
+  
+  dim = n_rows + n_cols;
+  tmp = mat_xcalloc(dim, n_cols);
+  for (i = 0;i < dim;i++) {
+    for (j = 0;j < n_cols;j++) {
+      MAT_ITEM(tmp, i, j) = gexp(i, j); 
+    }
+  }
+
+  /* perform transformations to get the identity matrix on the top rows */
+  i = 0;
+  while (i < n_cols) {
+    
+    if (mat_check_row_is_identity(tmp, i)) {
+      i++;
+      continue ;
+    }
+    
+    //this case is mentionned in the paper but cannot happen
+    /* if (0 == MAT_ITEM(tmp, i, i)) {
+       for (j = i + 1;j < tmp->n_cols;j++) {
+       if (0 != MAT_ITEM(tmp, i, j)) {
+       mat_swap_cols(tmp, i, j);
+       continue ;
+       }
+       } */
+    
+    //check if f_i_i == 1
+    if (1 != MAT_ITEM(tmp, i, i)) {
+      //check for inverse since f_i_i != 0
+      mat_transform1(tmp, i);
+    }
+    
+    //now f_i_i == 1
+    for (j = 0;j < tmp->n_cols;j++) {
+      if (i != j) {
+        if (0 != MAT_ITEM(tmp, i, j)) {
+          mat_transform2(tmp, i, j);
+        }
+      }
+    }
+    
+    i++;
+  }
+
+  mat = mat_xcalloc(n_rows, n_cols);
+
+  //copy last n_rows rows of tmp into mat
+  for (i = 0;i < n_rows;i++) {
+    for (j = 0;j < n_cols;j++) {
+      MAT_ITEM(mat, i, j) = MAT_ITEM(tmp, n_cols + i, j);
+    }
+  }
+
+  free(tmp);
+  return mat;
+}
+
 void mat_inv(t_mat *mat)
 {
   t_mat *aug;
@@ -367,6 +478,7 @@ void utest()
   assert(gmul(13, 10) == 11);  
   assert(gdiv(13, 10) == 3);
   assert(gdiv(3, 7) == 10);
+  /* non-MDS vandermonde matrix */
   t_mat *mat = mat_vandermonde(3, 3);
   t_vec *vec = vec_xcalloc(3);
   VEC_ITEM(vec, 0) = 3;
@@ -402,6 +514,8 @@ void utest()
   assert(VEC_ITEM(output, 2) == 9);
   vec_free(output);
   vec_free(vec);
+  mat_free(mat);
+  mat = mat_vandermonde_correct(3, 3);
   mat_free(mat);
 #elif W == 8
   assert(gmul(3, 7) == 9);
@@ -711,7 +825,9 @@ int main(int argc, char **argv)
   if (-1 == n_data || -1 == n_coding || NULL == prefix)
     xusage();
 
-  vander_mat = mat_vandermonde(n_coding, n_data);
+  vander_mat = mat_vandermonde_correct(n_coding, n_data);
+  if (vflag)
+    mat_dump(vander_mat);
 
   if (rflag) {
     if (0 != repair_data_files(prefix, vander_mat)) {
