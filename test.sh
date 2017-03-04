@@ -19,7 +19,8 @@ do_test()
     n_coding=$3
     data_loss=$4
     coding_loss=$5
-    echo ${bin} n=${n_data} m=${n_coding} data_loss=\"${data_loss}\" coding_loss=\"${coding_loss}\"
+    extraopts=$6
+    echo ${bin} n=${n_data} m=${n_coding} data_loss=\"${data_loss}\" coding_loss=\"${coding_loss}\" ${extraopts}
 
     rm -f foo.*
     
@@ -29,7 +30,7 @@ do_test()
         md5sum foo.d${i} > foo.d${i}.md5sum.1
     done
     
-    ${valgrind} ${bin} -n ${n_data} -m ${n_coding} -p foo -c ${vflag}
+    ${valgrind} ${bin} -n ${n_data} -m ${n_coding} -p foo -c ${extraopts} ${vflag}
     checkfail "coding generation"
 
     for i in `seq 0 $(expr ${n_coding} - 1)`
@@ -47,7 +48,7 @@ do_test()
         rm foo.c${i}
     done
 
-    ${valgrind} ${bin} -n ${n_data} -m ${n_coding} -p foo -r ${vflag}
+    ${valgrind} ${bin} -n ${n_data} -m ${n_coding} -p foo -r ${extraopts} ${vflag}
     checkfail "repairing"
 
     for i in $data_loss
@@ -69,26 +70,26 @@ do_test()
 ./ecgf8 -u
 ./ecgf16 -u
 
-do_test ./ecgf8 3 3 "0 1" "0"
-do_test ./ecgf16 3 3 "0 1" "0"
+do_test ./ecgf8 3 3 "0 1" "0" $*
+do_test ./ecgf16 3 3 "0 1" "0" $*
  
-do_test ./ecgf8 3 3 "1 2" "2"
-do_test ./ecgf16 3 3 "1 2" "2"
+do_test ./ecgf8 3 3 "1 2" "2" $*
+do_test ./ecgf16 3 3 "1 2" "2" $*
 
-do_test ./ecgf8 9 3 "1 2" "2"
-do_test ./ecgf16 9 3 "1 2" "2"
+do_test ./ecgf8 9 3 "1 2" "2" $*
+do_test ./ecgf16 9 3 "1 2" "2" $*
 
-do_test ./ecgf8 9 3 "2 3" "2"
-do_test ./ecgf16 9 3 "2 3" "2"
+do_test ./ecgf8 9 3 "2 3" "2" $*
+do_test ./ecgf16 9 3 "2 3" "2" $*
 
-do_test ./ecgf8 9 5 "2 3 4" "2 3"
-do_test ./ecgf16 9 5 "2 3 4" "2 3"
+do_test ./ecgf8 9 5 "2 3 4" "2 3" $*
+do_test ./ecgf16 9 5 "2 3 4" "2 3" $*
 
-do_test ./ecgf8 9 5 "1 3 5" "1 3"
-do_test ./ecgf16 9 5 "1 3 5" "1 3"
+do_test ./ecgf8 9 5 "1 3 5" "1 3" $*
+do_test ./ecgf16 9 5 "1 3 5" "1 3" $*
 
-do_test ./ecgf8 9 5 "1 3 5 7 8" ""
-do_test ./ecgf16 9 5 "1 3 5 7 8" ""
+do_test ./ecgf8 9 5 "1 3 5 7 8" "" $*
+do_test ./ecgf16 9 5 "1 3 5 7 8" "" $*
 
-do_test ./ecgf8 9 5 "" "0 1 2 3 4"
-do_test ./ecgf16 9 5 "" "0 1 2 3 4"
+do_test ./ecgf8 9 5 "" "0 1 2 3 4" $*
+do_test ./ecgf16 9 5 "" "0 1 2 3 4" $*
