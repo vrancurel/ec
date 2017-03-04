@@ -1,0 +1,8 @@
+compile:
+  override:
+    - make
+
+test:
+  override:
+    - ./test.sh
+    - ./test.sh -s
