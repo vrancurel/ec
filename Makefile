@@ -3,25 +3,27 @@ LDFLAGS =
 
 PROGS = ecgf4 ecgf8 ecgf16
 
+COMMON_OBJS = ec.o main.o mat.o misc.o vec.o
+
 all: $(PROGS)
 
-ecgf4: ecgf4.o
-	cc -o ecgf4 ecgf4.o $(LDFLAGS)
+ecgf4: gf4.o $(COMMON_OBJS)
+	cc -o ecgf4 gf4.o $(COMMON_OBJS) $(LDFLAGS)
 
-ecgf4.o: ec.c
-	cc -o ecgf4.o -c ec.c $(CFLAGS) -DW=4
+gf4.o: gf.c
+	cc -o gf4.o -c gf.c $(CFLAGS) -DW=4
 
-ecgf8: ecgf8.o
-	cc -o ecgf8 ecgf8.o $(LDFLAGS)
+ecgf8: gf8.o $(COMMON_OBJS)
+	cc -o ecgf8 gf8.o $(COMMON_OBJS) $(LDFLAGS)
 
-ecgf8.o: ec.c
-	cc -o ecgf8.o -c ec.c $(CFLAGS) -DW=8
+gf8.o: ec.c
+	cc -o gf8.o -c gf.c $(CFLAGS) -DW=8
 
-ecgf16: ecgf16.o
-	cc -o ecgf16 ecgf16.o $(LDFLAGS)
+ecgf16: gf16.o $(COMMON_OBJS)
+	cc -o ecgf16 gf16.o $(COMMON_OBJS) $(LDFLAGS)
 
-ecgf16.o: ec.c
-	cc -o ecgf16.o -c ec.c $(CFLAGS) -DW=16
+gf16.o: ec.c
+	cc -o gf16.o -c gf.c $(CFLAGS) -DW=16
 
 clean:
 	rm -f $(PROGS) *.o
