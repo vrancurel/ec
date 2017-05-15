@@ -46,7 +46,7 @@ t_mat *mat_vandermonde(u_int n_rows, u_int n_cols)
   mat = mat_xcalloc(n_rows, n_cols);
   for (i = 0;i < n_rows;i++) {
     for (j = 0;j < n_cols;j++) {
-      MAT_ITEM(mat, i, j) = gexp(j + 1, i); 
+      MAT_ITEM(mat, i, j) = gpow(j + 1, i); 
     }
   }
   return mat;
@@ -139,7 +139,7 @@ t_mat *mat_vandermonde_correct(u_int n_rows, u_int n_cols)
   tmp = mat_xcalloc(dim, n_cols);
   for (i = 0;i < dim;i++) {
     for (j = 0;j < n_cols;j++) {
-      MAT_ITEM(tmp, i, j) = gexp(i, j); 
+      MAT_ITEM(tmp, i, j) = gpow(i, j); 
     }
   }
 
