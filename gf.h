@@ -7,5 +7,5 @@ extern int setup_tables();
 extern void dump_tables();
 extern int gmul(int a, int b);
 extern int gdiv(int a, int b);
-extern int gexp(int a, int b);
+extern int gpow(int a, int b);
 extern void utest();

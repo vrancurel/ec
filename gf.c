@@ -110,7 +110,7 @@ int gdiv(int a, int b)
   return gfilog[diff_log];
 }
 
-int gexp(int a, int b)
+int gpow(int a, int b)
 {
   int r, i;
 
